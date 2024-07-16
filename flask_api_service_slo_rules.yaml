@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: my-service-slo-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: my-service-slos
+    rules:
+    - alert: HighErrorRate
+      expr: (sum(rate(flask_http_request_total{status="404"}[5m])) / sum(rate(flask_http_request_total[5m]))) * 100 > 1
+      for: 10m
+      labels:
+        severity: critical
+      annotations:
+        summary: "High error rate detected"
+        description: "More than 1% of requests are resulting in 404 errors over the last 10 minutes."
+
+    - alert: HighLatency
+      expr: histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High latency detected"
+        description: "The 95th percentile latency is above 500ms over the last 10 minutes."
+
+    - alert: LowSuccessRate
+      expr: (sum(rate(flask_http_request_total{status="200"}[5m])) / sum(rate(flask_http_request_total[5m]))) * 100 < 99.9
+      for: 10m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Low success rate detected"
+        description: "Less than 99.9% of requests are successful over the last 10 minutes."
+
+    - alert: LowUptime
+      expr: avg_over_time(probe_success[1m]) * 100 < 99.9
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Service uptime is below 99.9%"
+        description: "The service has been up less than 99.9% of the time over the past 1 minute."
+      

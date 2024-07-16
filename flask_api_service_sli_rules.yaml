@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: my-service-sli-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: my-service-slis
+    rules:
+    - record: job:flask_http_request_total:rate5m
+      expr: sum(rate(flask_http_request_total{job="flask-app-service"}[5m]))
+    - record: job:flask_http_request_total:client_error_rate5m
+      expr: sum(rate(flask_http_request_total{job="flask-app-service", status="404"}[5m])) / sum(rate(flask_http_request_total{job="flask-app-service"}[5m]))
+    - record: job:flask_http_request_total:success_rate5m
+      expr: sum(rate(flask_http_request_total{job="flask-app-service", status="200"}[5m])) / sum(rate(flask_http_request_total{job="flask-app-service"}[5m]))
+    - record: job:flask_http_request_duration_seconds:95th_percentile
+      expr: histogram_quantile(0.95, sum(rate(flask_http_request_duration_seconds_bucket{job="flask-app-service"}[5m])) by (le))
